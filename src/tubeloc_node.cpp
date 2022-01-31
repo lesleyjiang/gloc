@@ -1,6 +1,10 @@
 #include <codac.h>
 #include <codac-rob.h>
 
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+
 using namespace std;
 using namespace codac;
 
@@ -63,16 +67,16 @@ int main()
     // vinicity of true trajectory
     IntervalVector move_area1(actual_x1.codomain().subvector(0, 1));
     move_area1.inflate(0.4);
-    cout << "move_area1" << move_area1 << endl;
+    // cout << "move_area1" << move_area1 << endl;
     IntervalVector move_area2(actual_x2.codomain().subvector(0, 1));
     move_area2.inflate(0.4);
-    cout << "move_area2" << move_area2 << endl;
+    // cout << "move_area2" << move_area2 << endl;
     IntervalVector move_area3(actual_x3.codomain().subvector(0, 1));
     move_area3.inflate(0.4);
-    cout << "move_area3" << move_area3 << endl;
+    // cout << "move_area3" << move_area3 << endl;
     IntervalVector move_area4(actual_x4.codomain().subvector(0, 1));
     move_area4.inflate(0.4);
-    cout << "move_area4" << move_area4 << endl;
+    // cout << "move_area4" << move_area4 << endl;
     
     // draw landmarks(beacons) in the map
     for(auto& b : v_map)
@@ -85,7 +89,7 @@ int main()
     cout << "l_map.size() = " << l_map.size() << endl;
 
     // define the observation range
-    double r_obs = 2; // range of oservation
+    double r_obs = 15; // range of oservation
 
 
     // iterate the contractor over whole trajectory
@@ -115,29 +119,267 @@ int main()
 
             vector<IntervalVector> l1_obs; // Define the 2d range-and-bearing measurements
             vector<IntervalVector> l1_map; // define map of the actual_x[j](t=dt*i)
+            vector<Vector> p_block = {{1, -1}, {9, -1}, {9, -9}, {1, -9}}; // four corner points of corridor wall that can block the FOV 
 
             for(auto& l1_0: l_map)
             {
                 Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
                 double L1_D = sqrt(l1_d[0] * l1_d[0] + l1_d[1] * l1_d[1]); // landmark to robot distance
-                Interval l1_r = L1_D + Interval(-0.1, 0.1); // range-to-landmark observed
-                double l1_phi = atan2(l1_d[1], l1_d[0]) - actual_x[j](dt*i)[2]; // landmark to robot angle
-                Interval l1_a = l1_phi + Interval(-0.04, 0.04); // angle-to-landmark observed
-                if(L1_D < r_obs)
+                Interval l1_r = L1_D + Interval(-0.1, 0.1); // landmark-to-robot distance observed
+                double l1_psi = atan2(l1_d[1], l1_d[0]); // landmark to robot angle
+                double l1_phi = atan2(l1_d[1], l1_d[0]) - actual_x[j](dt*i)[2]; // landmark to robot angle (robot heading included)
+                Interval l1_a = l1_phi + Interval(-0.04, 0.04); // landmark-to-robot observed
+
+                // observation constraints 
+                if(j == 0)
                 {
-                    l1_obs.push_back({l1_r, l1_a});
-                    l1_map.push_back(l1_0);
-                    if(j == 0)
-                        fig_map.draw_box(l1_0, "grey[blue]");
-                    if(j == 1)
-                        fig_map.draw_box(l1_0, "grey[red]");
-                    if(j == 2)
-                        fig_map.draw_box(l1_0, "grey[green]");
-                    if(j == 3)
-                        fig_map.draw_box(l1_0, "grey[yellow]");
-                    // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
-                    // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                    if(actual_x[j](dt*i)[0] <= 1)
+                    {
+                        Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "p0_phi1:" << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2:" << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() > -1)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[0] > 1 && actual_x[j](dt*i)[0] <= 9)
+                    {
+                        Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() > -1)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[0] > 9)
+                    {
+                        Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() > -1)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
                 }
+
+                if(j == 1)
+                {
+                    if(actual_x[j](dt*i)[1] > -1)
+                    {
+                        Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() > -1 | l1_0[0].mid() > 9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[1] > -9 && actual_x[j](dt*i)[1] <= -1)
+                    {
+                        Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if((l1_psi < p0_phi1 && l1_psi > p0_phi2) | l1_0[0].mid() > 9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[1] <= -9)
+                    {
+                        Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() < -9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                }
+
+                if(j == 2)
+                {
+                    if(actual_x[j](dt*i)[0] > 9)
+                    {
+                        Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() < -9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[0] > 1 && actual_x[j](dt*i)[0] <= 9)
+                    {
+                        Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if( l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() < -9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[0] <= 1)
+                    {
+                        Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() < -9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                }
+
+                if(j == 3)
+                {
+                    if(actual_x[j](dt*i)[1] < -9)
+                    {
+                        Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() < -9)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[1] >= -9 && actual_x[j](dt*i)[1] < -1)
+                    {
+                        Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if( l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                    if(actual_x[j](dt*i)[1] >= -1)
+                    {
+                        Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                        Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                        double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                        double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                        // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                        // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                        // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                        if(L1_D < r_obs)
+                            if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() > -1)
+                            {
+                                l1_obs.push_back({l1_r, l1_a});
+                                l1_map.push_back(l1_0);
+                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                                // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (Interval(0.01) | l1_r), l1_a, "lightGray");
+                            }
+                    }
+                }
+                
                 fig_map.axis_limits(fig_map.view_box(), true, 0.1);        
             }
             fig_map.show();
