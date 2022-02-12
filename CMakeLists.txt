@@ -69,8 +69,8 @@ target_link_libraries(tubeloc_example PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES
 
 add_executable(gloc_node src/gloc_node.cpp)
 target_compile_options(gloc_node PUBLIC ${CODAC_CXX_FLAGS})
-target_include_directories(gloc_node SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
-target_link_libraries(gloc_node PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)
+target_include_directories(gloc_node SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
+target_link_libraries(gloc_node PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} gtsam Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)
 # target_link_libraries(gloc_node PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES})
 message(STATUS "Found IBEX ${IBEX_LDFLAGS}") 
 
