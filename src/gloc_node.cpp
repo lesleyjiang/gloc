@@ -16,6 +16,8 @@
 #include <gtsam/nonlinear/Marginals.h>
 #include <gtsam/nonlinear/Values.h>
 
+#include <Eigen/Core>
+
 
 using namespace std;
 // using namespace codac;
@@ -664,27 +666,54 @@ int main(int argc, char** argv)
             // cout << "x = " << x << endl;
 
             fig_map.draw_box(x.subvector(0, 1), "red");
+
+            // // output all pose boxes
+            // cout << x[0].lb() <<", "<<x[1].lb()<<", "<<x[0].diam()<<", "<<x[1].diam()<< endl;
+            
             fig_map.show(); // argument is robot size
         }
     }
 
-    // Print factor graph
-    graph.print("Factor Graph:\n");
+    // // Print factor graph
+    // graph.print("Factor Graph:\n");
 
-    // // Print
+    // // Print initial estimate
     // initialEstimate.print("Initial Estimate:\n");
 
     // Optimize using Levenberg-Marquardt optimization
     gtsam::LevenbergMarquardtOptimizer optimizer(graph, initialEstimate);
     gtsam::Values result = optimizer.optimize();
-    result.print("Final Result:\n");
+    // // print result of x poses
+    // for(int i = 0; i < 400; i++)
+    // {
+    //     result.at(x[i]).print();
+    // }
+    // // print result of landmark positions
+    // for(int i = 0; i < 169; i++)
+    // {
+    //     result.at(lm[i]).print();
+    // }
+    
 
     // Calculate and print marginal covariances for all variables
     gtsam::Marginals marginals(graph, result);
-    for(int i = 0; i < 400; i++)
-        cout << "x[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(x[i]) << endl;
-    for(int i = 0; i < 169; i++)
-        cout << "l[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(lm[i]) << endl;
+    // // print 2x2 covariance matrix of (x, y) from the 3x3 cov matrix of (x, y, heading)
+    // for(int i = 0; i < 400; i++)
+    // {
+    //     // cout << "x[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(x[i]) << endl;
+    //     // cout << "[" <<marginals.marginalCovariance(x[i])<< "], "<< endl;
+    //     Eigen::MatrixXd Matrix = marginals.marginalCovariance(x[i]);
+    //     Eigen::MatrixXd m = Matrix.topLeftCorner(2, 2);
+    //     cout << m << endl;
+    // }
+    // // print covariance matrix of all landmarks
+    // for(int i = 0; i < 169; i++)
+    // {
+    //     // cout << "l[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(lm[i]) << endl;
+    //     Eigen::MatrixXd lmMatrix = marginals.marginalCovariance(lm[i]);
+    //     cout << lmMatrix << endl;
+    // }
+        
 
     vibes::endDrawing();
     return 0;
