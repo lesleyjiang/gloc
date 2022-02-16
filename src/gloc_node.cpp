@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <random>
 
 #include <gtsam/geometry/Pose2.h>
 #include <gtsam/geometry/Point2.h>
@@ -327,13 +328,13 @@ int main(int argc, char** argv)
                 codac::Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
                 double L1_D = sqrt(l1_d[0] * l1_d[0] + l1_d[1] * l1_d[1]); // landmark to robot distance
 
-                // // define interval of range measurement: +- 0.3m
-                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
+                // define interval of range measurement: +- 0.3m
+                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
 
                 // // add sytematic error to range measurement by 1 sigma
                 // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.1;
-                // add sytematic error to range measurement by 1 sigma
-                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
+                // // add sytematic error to range measurement by 1 sigma
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
 
                 double l1_psi = atan2(l1_d[1], l1_d[0]); // landmark to robot angle
                 double l1_phi = atan2(l1_d[1], l1_d[0]) - (actual_x[j](dt*i)[2]); // landmark to robot angle (robot heading included)
@@ -347,8 +348,15 @@ int main(int argc, char** argv)
                 double range = L1_D;
                 // // shift my range measurement by 1 sigma
                 // range = L1_D + 0.1;
-                // shift my range measurement by 2 sigma
-                range = L1_D + 0.2;
+                // // shift my range measurement by 2 sigma
+                // range = L1_D + 0.2;
+
+                // sample the range measurement according to a uniform distribution in interval(-0.3, 0.3)
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                std::uniform_real_distribution<> dis(-0.3, 0.3);
+                range = L1_D + dis(gen);
+
 
                 // observation constraints 
                 if(j == 0)

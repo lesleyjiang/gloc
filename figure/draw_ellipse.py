@@ -71,15 +71,15 @@ pose_xy = np.loadtxt("x_result.txt", delimiter=",", converters={0: conv, 1: conv
 # print(pose_xy)
 pose_lm = np.loadtxt("lm_result.txt", delimiter=",", converters={0: conv, 1: conv})
 # print(pose_lm)
-box =np.loadtxt("box_s3.txt", delimiter=",", converters={0: conv, 1: conv})
+box =np.loadtxt("box_m.txt", delimiter=",", converters={0: conv, 1: conv})
 # print(box)
 
-pose_xy_s1 = np.loadtxt("x_result_s3.txt", delimiter=",", converters={0: conv, 1: conv})
-pose_lm_s1 = np.loadtxt("lm_result_s3.txt", delimiter=",", converters={0: conv, 1: conv})
-xy_matrix_s1 = np.loadtxt("cov_xy_mm_s3.txt", converters={0: conv, 1: conv})
-lm_matrix_s1 = np.loadtxt("cov_lm_mm_s3.txt", converters={0: conv, 1: conv})
+pose_xy_s1 = np.loadtxt("x_result_u.txt", delimiter=",", converters={0: conv, 1: conv})
+pose_lm_s1 = np.loadtxt("lm_result_u.txt", delimiter=",", converters={0: conv, 1: conv})
+xy_matrix_s1 = np.loadtxt("cov_xy_mm_u.txt", converters={0: conv, 1: conv})
+lm_matrix_s1 = np.loadtxt("cov_lm_mm_u.txt", converters={0: conv, 1: conv})
 
-# f= open('lm_result_s3.txt', 'r')
+# f= open('lm_result_u.txt', 'r')
 # data_txt = f.read()
 # data_txt = data_txt.replace('(', '')
 # data_txt = data_txt.replace(')', '')
@@ -180,11 +180,11 @@ for j in range(169):
 plt.axis('equal')
 # plt.legend([ell1, ell2],[str(100*(1-alpha)) + ' \% confidence ellipse ', 
 #                          str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
-# plt.legend([rect, ell1],['interval box', str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
+plt.legend([rect, ell1],['interval box', str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
 # plt.legend([rect, ell1, ell2],['interval box', str(100*(1-alpha)) + ' \% confidence ellipse ', 
 #                          str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
-plt.legend([rect, ell1, ell_s1],['interval box', str(100*(1-alpha)) + ' \% confidence ellipse ', 
-                         str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
+# plt.legend([rect, ell1, ell_s1],['interval box', str(100*(1-alpha)) + ' \% confidence ellipse ', 
+#                          str(100*(1-alpha)) + ' \% confidence ellipse '], loc='upper left')
 
 # plt.legend([reddot, ell1, bluedot, ell2],['probabilistic solution of robot pose', str(100*(1-alpha)) + ' \% confidence ellipse of robot pose', 
 #                          'landmark position', str(100*(1-alpha)) + ' \% confidence ellipse of landmark position'], loc='upper left')
@@ -195,4 +195,4 @@ plt.ylim([-12, 6])
 # ax1.grid(which='major', color='#DDDDDD', linewidth=0.2)
 # ax1.grid(which='minor', color='#EEEEEE', linestyle=':', linewidth=0.2)
 # ax1.minorticks_on()
-plt.savefig('example10.pdf', format='pdf')
+plt.savefig('example12.pdf', format='pdf')

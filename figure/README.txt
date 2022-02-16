@@ -18,7 +18,7 @@ example4.pdf: --bad prior no landmark
 Pose at origin: prior(0.0, 0.0, 0.0);
 priorNoise: Sigmas(0.2, 0.2, 0.01); // 20cm std on x,y, 0.01 rad on theta
 
-example5.pdf: (cov_xy_mm.txt cov_lm_mm.txt) --bad prior, good landmark
+example5.pdf: (cov_xy_mm.txt cov_lm_mm.txt, x_result.txt, lm_result.txt) --bad prior, good landmark
 Pose at origin: prior(0.0, 0.0, 0.0);
 priorNoise: Sigmas(0.2, 0.2, 0.01); // 20cm std on x,y, 0.01 rad on theta
 landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.1, 0.1) // 10cm x, y
@@ -50,3 +50,8 @@ landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.1, 0.1) // 10cm
 range += 0.2m (range value by sensor)
 Interval:
 codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2; (range value by sensor)
+
+example11.pdf: ( box_m.txt) --bad prior, good landmark, measurement uniform distribution(probabilistic)
+Pose at origin: prior(0.0, 0.0, 0.0);
+priorNoise: Sigmas(0.2, 0.2, 0.01); // 20cm std on x,y, 0.01 rad on theta
+landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.1, 0.1) // 10cm x, y
