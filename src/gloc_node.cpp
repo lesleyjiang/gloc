@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     {
         codac::Vector lk{k[0], k[1]};
         codac::IntervalVector llk(lk);
-        k_map.push_back(llk.inflate(0.05));
+        k_map.push_back(llk.inflate(0.3)); // radius = 30cm (3*sigma) the interval bound of landmarks
     }
     int m_size = a_map.size();
     // cout << "size of a_map: " << m_size << endl;
@@ -177,18 +177,23 @@ int main(int argc, char** argv)
     // array of gtsam Symbols for poses in actual_x(i)
     static gtsam::Symbol x[400];
 
-    // create a noise model for odometry
-    gtsam::noiseModel::Diagonal::shared_ptr odometryNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.01)); // 2cm std on x,y, 0.01 rad on theta
+    // // create a noise model for odometry
+    // gtsam::noiseModel::Diagonal::shared_ptr odometryNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.2, 0.2, 0.1)); // 20cm std on x,y, 0.1 rad on theta
 
     // array of gtsam Symbols for all landmarks (169 landmarks)
     static gtsam::Symbol lm[169];
     for(int k = 0; k < 169; k++)
     {
         lm[k] = gtsam::Symbol('l', k);
+        
+        // add prior on landmarks
+        gtsam::Point2 m_prior(a_map[k][0], a_map[k][1]);
+        gtsam::noiseModel::Diagonal::shared_ptr mapNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector2(0.1, 0.1)); //10cm on width and height
+        graph.emplace_shared<gtsam::PriorFactor<gtsam::Point2> >(lm[k], m_prior, mapNoise);
     }
 
     // create a noise model for the landmark measurements
-    gtsam::noiseModel::Diagonal::shared_ptr measurementNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector2(0.01, 0.02)); // 0.01 rad std on bearing, 2cm on range
+    gtsam::noiseModel::Diagonal::shared_ptr measurementNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector2(0.01, 0.1)); // 0.01 rad std on bearing, 10cm on range
 
     // create initial estimate
     gtsam::Values initialEstimate;
@@ -200,7 +205,7 @@ int main(int argc, char** argv)
     }
 
     // iterate the contractor over whole trajectory
-    for(int j = 0; j < 4; j++)
+    for(int j = 0; j < 4; j++) 
     {
         for(int i=0; i < 100; i++)
         {
@@ -213,15 +218,17 @@ int main(int argc, char** argv)
                 {
                     // add a prior on pose x1 at the origin
                     gtsam::Pose2 prior(0.0, 0.0, 0.0);
-                    gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.01)); // 2cm std on x,y, 0.01 rad on theta
+                    gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.2, 0.2, 0.01)); // 2cm std on x,y, 0.01 rad on theta
                     graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose2> >(x[i], prior, priorNoise); // add directly to graph
                 }
-                // add an odometry factor
-                if(i > 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i-1], x[i], odometry, odometryNoise);
-                }
+
+                // // add an odometry factor
+                // if(i > 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i-1], x[i], odometry, odometryNoise);
+                // }
+
                 // initial estimate for robot poses
                 initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
             }
@@ -229,16 +236,19 @@ int main(int argc, char** argv)
             {
                 //create the key for pose x[i+100]
                 x[i+100] = gtsam::Symbol('x', i+100);
-                if(i == 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
-                }
-                if(i > 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
-                }
+
+                // // add an odometry factor
+                // if(i == 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
+                // }
+                // if(i > 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
+                // }
+
                 // initial estimate for robot poses
                 initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
             }
@@ -246,16 +256,19 @@ int main(int argc, char** argv)
             {
                 //create the key for pose x[i+200]
                 x[i+200] = gtsam::Symbol('x', i+200);
-                if(i == 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
-                }
-                if(i > 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
-                }
+
+                // // add an odometry factor
+                // if(i == 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
+                // }
+                // if(i > 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
+                // }
+
                 // initial estimate for robot poses
                 initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI));
             }
@@ -263,16 +276,19 @@ int main(int argc, char** argv)
             {
                 //create the key for pose x[i]
                 x[i+300] = gtsam::Symbol('x', i+300);
-                if(i == 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
-                }
-                if(i > 0)
-                {
-                    gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                    graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
-                }
+
+                // // add an odometry factor
+                // if(i == 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
+                // }
+                // if(i > 0)
+                // {
+                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
+                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
+                // }
+
                 // initial estimate for robot poses
                 initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -3*M_PI_2));
             }
@@ -310,16 +326,29 @@ int main(int argc, char** argv)
                 
                 codac::Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
                 double L1_D = sqrt(l1_d[0] * l1_d[0] + l1_d[1] * l1_d[1]); // landmark to robot distance
-                codac::Interval l1_r = L1_D + codac::Interval(-0.1, 0.1); // landmark-to-robot distance observed
+
+                // // define interval of range measurement: +- 0.3m
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
+
+                // // add sytematic error to range measurement by 1 sigma
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.1;
+                // add sytematic error to range measurement by 1 sigma
+                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
+
                 double l1_psi = atan2(l1_d[1], l1_d[0]); // landmark to robot angle
                 double l1_phi = atan2(l1_d[1], l1_d[0]) - (actual_x[j](dt*i)[2]); // landmark to robot angle (robot heading included)
                 codac::Interval l1_a = l1_psi + codac::Interval(-0.04, 0.04); // landmark-to-robot observed
-                codac::Interval l1_b = l1_phi + codac::Interval(-0.04, 0.04);
+                // define interval of bearing measurement: +- 0.03 rad
+                codac::Interval l1_b = l1_phi + codac::Interval(-0.03, 0.03);
                 // codac::Interval l1_b = l1_psi+j*M_PI_2 + codac::Interval(-0.04, 0.04);
 
                 // create the measurement values
                 gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+j*M_PI_2);
                 double range = L1_D;
+                // // shift my range measurement by 1 sigma
+                // range = L1_D + 0.1;
+                // shift my range measurement by 2 sigma
+                range = L1_D + 0.2;
 
                 // observation constraints 
                 if(j == 0)
@@ -339,7 +368,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -360,7 +389,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
                                 
@@ -381,7 +410,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[blue]");
+                                // fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -417,7 +446,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -461,7 +490,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -484,7 +513,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[red]");
+                                // fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -511,7 +540,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -534,7 +563,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -557,7 +586,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[green]");
+                                // fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -584,7 +613,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -607,7 +636,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -630,7 +659,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                fig_map.draw_box(l1_0, "grey[yellow]");
+                                // fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -697,6 +726,7 @@ int main(int argc, char** argv)
 
     // Calculate and print marginal covariances for all variables
     gtsam::Marginals marginals(graph, result);
+
     // // print 2x2 covariance matrix of (x, y) from the 3x3 cov matrix of (x, y, heading)
     // for(int i = 0; i < 400; i++)
     // {
@@ -706,6 +736,7 @@ int main(int argc, char** argv)
     //     Eigen::MatrixXd m = Matrix.topLeftCorner(2, 2);
     //     cout << m << endl;
     // }
+
     // // print covariance matrix of all landmarks
     // for(int i = 0; i < 169; i++)
     // {
