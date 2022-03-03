@@ -1,3 +1,6 @@
 Comparison paper of interval-based method and probabilistic approach for landmark localization
 
-rosrun gloc tubeloc_node
+terminal 1: roscore
+terminal 2: /catkin_ws: catkin_make
+terminal 3: VIBes-viewer
+terminal 4: rosrun gloc tubeloc_node

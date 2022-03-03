@@ -309,7 +309,7 @@ int main(int argc, char** argv)
             if(j == 3)
                 vehicle_i[2] = codac::Interval(M_PI/2);
             codac::Vector vehicle = vehicle_i.mid();
-            fig_map.draw_vehicle(vehicle, 0.5);
+            // fig_map.draw_vehicle(vehicle, 0.5);
 
             // Generating observations for actual_x(t=dt*i) of landmarks
             // Display range-and-bearing measurements
@@ -351,11 +351,12 @@ int main(int argc, char** argv)
                 // // shift my range measurement by 2 sigma
                 // range = L1_D + 0.2;
 
-                // sample the range measurement according to a uniform distribution in interval(-0.3, 0.3)
+                // add offset to the range measurement according to a uniform distribution in interval(-0.3, 0.3)
                 std::random_device rd;
                 std::mt19937 gen(rd());
                 std::uniform_real_distribution<> dis(-0.3, 0.3);
                 range = L1_D + dis(gen);
+                // cout << "uniform offset: " << dis(gen) << endl;
 
 
                 // observation constraints 
@@ -376,7 +377,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[blue]");
+                                fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -397,7 +398,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[blue]");
+                                fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
                                 
@@ -418,7 +419,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[blue]");
+                                fig_map.draw_box(l1_0, "grey[blue]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -454,7 +455,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[red]");
+                                fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -498,7 +499,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[red]");
+                                fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -521,7 +522,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[red]");
+                                fig_map.draw_box(l1_0, "grey[red]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -548,7 +549,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[green]");
+                                fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -571,7 +572,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[green]");
+                                fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -594,7 +595,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[green]");
+                                fig_map.draw_box(l1_0, "grey[green]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -621,7 +622,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[yellow]");
+                                fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -644,7 +645,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[yellow]");
+                                fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -667,7 +668,7 @@ int main(int argc, char** argv)
                             {
                                 l1_obs.push_back({l1_r, l1_b});
                                 l1_map.push_back(l1_0);
-                                // fig_map.draw_box(l1_0, "grey[yellow]");
+                                fig_map.draw_box(l1_0, "grey[yellow]");
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
@@ -702,6 +703,7 @@ int main(int argc, char** argv)
             cn1.contract();
             // cout << "x = " << x << endl;
 
+            // draw the final contracted box of robot pose
             fig_map.draw_box(x.subvector(0, 1), "red");
 
             // // output all pose boxes
@@ -753,8 +755,12 @@ int main(int argc, char** argv)
     //     cout << lmMatrix << endl;
     // }
         
+    // // save the fig
+    // fig_map.save_image("map", "svg", ".");
 
     vibes::endDrawing();
+    
+
     return 0;
 
 }
