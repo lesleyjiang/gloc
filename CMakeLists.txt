@@ -78,3 +78,8 @@ add_executable(gtsam_PlanarSLAM src/gtsam_PlanarSLAM.cpp)
 target_compile_options(gtsam_PlanarSLAM PUBLIC ${CODAC_CXX_FLAGS})
 target_include_directories(gtsam_PlanarSLAM SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
 target_link_libraries(gtsam_PlanarSLAM PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} gtsam Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)
+
+add_executable(gloc_node1 src/gloc_node1.cpp)
+target_compile_options(gloc_node1 PUBLIC ${CODAC_CXX_FLAGS})
+target_include_directories(gloc_node1 SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
+target_link_libraries(gloc_node1 PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} gtsam Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)

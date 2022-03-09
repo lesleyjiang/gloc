@@ -1,5 +1,8 @@
-Basic Parameters:
+for gloc_node.cpp
 
+Basic Parameters: 
+
+range of oservation:	double r_obs = 2; 
 Interval:
 	landmark radius = 0.3m (3*sigma)
 	no prior on poses
