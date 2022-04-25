@@ -352,10 +352,10 @@ int main(int argc, char** argv)
                 // range = L1_D + 0.2;
 
                 // add offset to the range measurement according to a uniform distribution in interval(-0.3, 0.3)
-                std::random_device rd;
-                std::mt19937 gen(rd());
-                std::uniform_real_distribution<> dis(-0.3, 0.3);
-                range = L1_D + dis(gen);
+                // std::random_device rd;
+                // std::mt19937 gen(rd());
+                // std::uniform_real_distribution<> dis(-0.3, 0.3);
+                // range = L1_D + dis(gen);
                 // cout << "uniform offset: " << dis(gen) << endl;
 
 
@@ -714,43 +714,7 @@ int main(int argc, char** argv)
     }
 
     // // Print factor graph
-    // graph.print("Factor Graph:\n");
-
-    // // Print initial estimate
-    // initialEstimate.print("Initial Estimate:\n");
-
-    // Optimize using Levenberg-Marquardt optimization
-    gtsam::LevenbergMarquardtOptimizer optimizer(graph, initialEstimate);
-    gtsam::Values result = optimizer.optimize();
-    // // print result of x poses
-    // for(int i = 0; i < 400; i++)
-    // {
-    //     result.at(x[i]).print();
-    // }
-    // // print result of landmark positions
-    // for(int i = 0; i < 169; i++)
-    // {
-    //     result.at(lm[i]).print();
-    // }
-    
-
-    // Calculate and print marginal covariances for all variables
-    gtsam::Marginals marginals(graph, result);
-
-    // // print 2x2 covariance matrix of (x, y) from the 3x3 cov matrix of (x, y, heading)
-    // for(int i = 0; i < 400; i++)
-    // {
-    //     // cout << "x[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(x[i]) << endl;
-    //     // cout << "[" <<marginals.marginalCovariance(x[i])<< "], "<< endl;
-    //     Eigen::MatrixXd Matrix = marginals.marginalCovariance(x[i]);
-    //     Eigen::MatrixXd m = Matrix.topLeftCorner(2, 2);
-    //     cout << m << endl;
-    // }
-
-    // // print covariance matrix of all landmarks
-    // for(int i = 0; i < 169; i++)
-    // {
-    //     // cout << "l[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(lm[i]) << endl;
+    // graph.print("Factor Graph:\n");k_map: \n"<<marginals.marginalCovariance(lm[i]) << endl;
     //     Eigen::MatrixXd lmMatrix = marginals.marginalCovariance(lm[i]);
     //     cout << lmMatrix << endl;
     // }

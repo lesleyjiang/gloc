@@ -2,6 +2,7 @@ for gloc_node.cpp
 
 Basic Parameters: 
 
+robot trajectory: a_clock (starting from upper left corner(0, 0) and goes clockwise)
 range of oservation:	double r_obs = 2; 
 Interval:
 	landmark radius = 0.3m (3*sigma)
@@ -58,3 +59,4 @@ example11.pdf: (x_result_u.txt lm_result_u.txt cov_xy_mm_u.txt cov_lm_mm_u.txt b
 Pose at origin: prior(0.0, 0.0, 0.0);
 priorNoise: Sigmas(0.2, 0.2, 0.01); // 20cm std on x,y, 0.01 rad on theta
 landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.1, 0.1) // 10cm x, y
+

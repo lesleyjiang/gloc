@@ -88,26 +88,37 @@ int main(int argc, char** argv)
     // design the true robot trajectory
     double dt = 0.1;
     codac::Interval tdomain1(0, 10);
-    codac::Interval tdomain2(tdomain1.ub(), tdomain1.ub()+10);
 
+    // original trajectory a_clock (a-upper left corner, b-upper right, c-bottom right, d-bottom left, clock-clockwise)
     codac::TrajectoryVector actual_x1(tdomain1, codac::TFunction("( t; 0; 0; 1 )"), dt);
-    // cout << "actual_x1 = " << actual_x1 << endl;
-
     codac::TrajectoryVector actual_x2(tdomain1, codac::TFunction("( 10; -t; -90; 1 )"), dt);
-    // cout << "actual_x2 = " << actual_x2 << endl;
-    // actual_x2.shift_tdomain(10);
-    // cout << "actual_x1 = " << actual_x1 << end;
-
     codac::TrajectoryVector actual_x3(tdomain1, codac::TFunction("( 10-t; -10; 180; 1 )"), dt);
-    // cout << "actual_x3 = " << actual_x3 << endl;
-    // actual_x3.shift_tdomain(20);
-    // cout << "actual_x1 = " << actual_x1 << endl;
-    // cout << "actual_x2 = " << actual_x2 << endl;
-    // cout << "actual_x3 = " << actual_x3 << endl;
-
     codac::TrajectoryVector actual_x4(tdomain1, codac::TFunction("( 0; -10+t; 90; 1 )"), dt);
-    // cout << "actual_x4 = " << actual_x4 << endl;
-    // actual_x4.shift_tdomain(30);
+
+    // // scenario1: a_counterclock
+    // codac::TrajectoryVector actual_x1(tdomain1, codac::TFunction("( 0; -t; -90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x2(tdomain1, codac::TFunction("( t; -10; 0; 1 )"), dt);
+    // codac::TrajectoryVector actual_x3(tdomain1, codac::TFunction("( 10; -10+t; 90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x4(tdomain1, codac::TFunction("( 10-t; 0; 180; 1 )"), dt);
+
+    // // scenario2: b_clock
+    // codac::TrajectoryVector actual_x1(tdomain1, codac::TFunction("( 10; -t; -90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x2(tdomain1, codac::TFunction("( 10-t; -10; 180; 1 )"), dt);
+    // codac::TrajectoryVector actual_x3(tdomain1, codac::TFunction("( 0; -10+t; 90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x4(tdomain1, codac::TFunction("( t; 0; 0; 1 )"), dt);
+
+    // // scenario3: c_clock
+    // codac::TrajectoryVector actual_x1(tdomain1, codac::TFunction("( 10-t; -10; 180; 1 )"), dt);
+    // codac::TrajectoryVector actual_x2(tdomain1, codac::TFunction("( 0; -10+t; 90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x3(tdomain1, codac::TFunction("( t; 0; 0; 1 )"), dt);
+    // codac::TrajectoryVector actual_x4(tdomain1, codac::TFunction("( 10; -t; -90; 1 )"), dt);
+
+    // // scenario4: d_clock
+    // codac::TrajectoryVector actual_x1(tdomain1, codac::TFunction("( 0; -10+t; 90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x2(tdomain1, codac::TFunction("( t; 0; 0; 1 )"), dt);
+    // codac::TrajectoryVector actual_x3(tdomain1, codac::TFunction("( 10; -t; -90; 1 )"), dt);
+    // codac::TrajectoryVector actual_x4(tdomain1, codac::TFunction("( 10-t; -10; 180; 1 )"), dt);
+    
     cout << "actual_x1 = " << actual_x1 << endl;
     cout << "actual_x2 = " << actual_x2 << endl;
     cout << "actual_x3 = " << actual_x3 << endl;
@@ -185,7 +196,7 @@ int main(int argc, char** argv)
     {
         codac::Vector lk{k[0], k[1]};
         codac::IntervalVector llk(lk);
-        k_map.push_back(llk.inflate(0.3)); // radius = 30cm (3*sigma) the interval bound of landmarks
+        k_map.push_back(llk.inflate(0.03)); // radius = 3cm (3*sigma) the interval bound of landmarks, equivalent to the mapNoise(map prior uncertainty) 
     }
     int m_size = b_map.size();
     // cout << "size of b_map: " << m_size << endl;
@@ -197,9 +208,8 @@ int main(int argc, char** argv)
 
 
     // define the observation range
-    // double r_obs = 2; // range of oservation
-
-    double r_obs = 15; // range of oservation
+    double r_obs = 2; // range of oservation
+    // double r_obs = 15; // range of oservation
 
 
     // create a factor graph
@@ -218,10 +228,10 @@ int main(int argc, char** argv)
     {
         lm[k] = gtsam::Symbol('l', k);
         
-        // // add prior on landmarks
-        // gtsam::Point2 m_prior(b_map[k][0], b_map[k][1]);
-        // gtsam::noiseModel::Diagonal::shared_ptr mapNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector2(0.1, 0.1)); //10cm on width and height
-        // graph.emplace_shared<gtsam::PriorFactor<gtsam::Point2> >(lm[k], m_prior, mapNoise);
+        // add prior on landmarks
+        gtsam::Point2 m_prior(b_map[k][0], b_map[k][1]);
+        gtsam::noiseModel::Diagonal::shared_ptr mapNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector2(0.01, 0.01)); //1cm on width and height
+        graph.emplace_shared<gtsam::PriorFactor<gtsam::Point2> >(lm[k], m_prior, mapNoise);
     }
 
     // create a noise model for the landmark measurements
@@ -249,80 +259,84 @@ int main(int argc, char** argv)
                 if(i == 0)
                 {
                     // add a prior on pose x1 at the origin
+                    // original trajectory: a_clock
                     gtsam::Pose2 prior(0.0, 0.0, 0.0);
+                    // // scenario1: a_counterclock
+                    // gtsam::Pose2 prior(0.0, 0.0, -M_PI_2);
+                    // // scenario2: b_clock
+                    // gtsam::Pose2 prior(10.0, 0.0, -M_PI_2);
+                    // // scenario3: c_clock
+                    // gtsam::Pose2 prior(10.0, -10.0, -M_PI);
+                    // // scenario4: d_clock
+                    // gtsam::Pose2 prior(0.0, -10.0, M_PI_2);
+
                     gtsam::noiseModel::Diagonal::shared_ptr priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.01)); // 20cm std on x,y, 0.01 rad on theta
                     graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose2> >(x[i], prior, priorNoise); // add directly to graph
                 }
 
-                // // add an odometry factor
-                // if(i > 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i-1], x[i], odometry, odometryNoise);
-                // }
-
+               
                 // initial estimate for robot poses
+                // original trajectory: a_clock
                 initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
+                // // scenario1: a_counterclock
+                // initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
+                // // scenario2: b_clock
+                // initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
+                // // scenario3: c_clock
+                // initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI));
+                // // scenario4: d_clock
+                // initialEstimate.insert(x[i], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], M_PI_2));
             }
             if(j == 1)
             {
                 //create the key for pose x[i+100]
                 x[i+100] = gtsam::Symbol('x', i+100);
 
-                // // add an odometry factor
-                // if(i == 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
-                // }
-                // if(i > 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+99], x[i+100], odometry, odometryNoise);
-                // }
-
                 // initial estimate for robot poses
+                // original trajectory: a_clock
                 initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
+                // // scenario1: a_counterclock
+                // initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
+                // // scenario2: b_clock
+                // initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI));
+                // // scenario3: c_clock
+                // initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], M_PI_2));
+                // // scenario4: d_clock
+                // initialEstimate.insert(x[i+100], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
             }
             if(j == 2)
             {
                 //create the key for pose x[i+200]
                 x[i+200] = gtsam::Symbol('x', i+200);
 
-                // // add an odometry factor
-                // if(i == 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
-                // }
-                // if(i > 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+199], x[i+200], odometry, odometryNoise);
-                // }
-
                 // initial estimate for robot poses
+                // original trajectory: a_clock
                 initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI));
+                // // scenario1: a_counterclock
+                // initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], M_PI_2));
+                // // scenario2: b_clock
+                // initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -3*M_PI_2));
+                // // scenario3: c_clock
+                // initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
+                // // scenario4: d_clock
+                // initialEstimate.insert(x[i+200], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
             }
             if(j == 3)
             {
                 //create the key for pose x[i]
                 x[i+300] = gtsam::Symbol('x', i+300);
 
-                // // add an odometry factor
-                // if(i == 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, -M_PI_2);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
-                // }
-                // if(i > 0)
-                // {
-                //     gtsam::Pose2 odometry(dt, 0.0, 0.0);
-                //     graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(x[i+299], x[i+300], odometry, odometryNoise);
-                // }
-
                 // initial estimate for robot poses
+                // original trajectory: a_clock
                 initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -3*M_PI_2));
+                // // scenario1: a_counterclock
+                // initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], M_PI));
+                // // scenario2: b_clock
+                // initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], 0));
+                // // scenario3: c_clock
+                // initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI_2));
+                // // scenario4: d_clock
+                // initialEstimate.insert(x[i+300], gtsam::Pose2(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], -M_PI));
             }
             
             
@@ -332,13 +346,63 @@ int main(int argc, char** argv)
             vehicle_i[0] = actual_x[j](dt*i)[0];
             vehicle_i[1] = actual_x[j](dt*i)[1];
             if(j == 0)
+            {
+                // original trajectory: a_clock
                 vehicle_i[2] = codac::Interval(0);
+                // // scenario1: a_counterclock
+                // vehicle_i[2] = codac::Interval(-M_PI/2);
+                // // scenario2: b_clock
+                // vehicle_i[2] = codac::Interval(-M_PI/2);
+                // // scenario3: c_clock
+                // vehicle_i[2] = codac::Interval(-M_PI);
+                // // scenario4: d_clock
+                // vehicle_i[2] = codac::Interval(M_PI/2);
+                
+            }
+                
             if(j == 1)
+            {
+                // original trajectory: a_clock
                 vehicle_i[2] = codac::Interval(-M_PI/2);
+                // // scenario1: a_counterclock
+                // vehicle_i[2] = codac::Interval(0);
+                // // scenario2: b_clock
+                // vehicle_i[2] = codac::Interval(-M_PI);
+                // // scenario3: c_clock
+                // vehicle_i[2] = codac::Interval(M_PI/2);
+                // // scenario4: d_clock
+                // vehicle_i[2] = codac::Interval(0);
+
+            }
+                
             if(j == 2)
+            {
+                // original trajectory: a_clock
                 vehicle_i[2] = codac::Interval(-M_PI);
+                // // scenario1: a_counterclock
+                // vehicle_i[2] = codac::Interval(M_PI/2);
+                // // scenario2: b_clock
+                // vehicle_i[2] = codac::Interval(M_PI/2);
+                // // scenario3: c_clock
+                // vehicle_i[2] = codac::Interval(0);
+                // // scenario4: d_clock
+                // vehicle_i[2] = codac::Interval(-M_PI/2);
+            }
+             
             if(j == 3)
+            {
+                // original trajectory: a_clock
                 vehicle_i[2] = codac::Interval(M_PI/2);
+                // // scenario1: a_counterclock
+                // vehicle_i[2] = codac::Interval(M_PI);
+                // // scenario2: b_clock
+                // vehicle_i[2] = codac::Interval(0);
+                // // scenario3: c_clock
+                // vehicle_i[2] = codac::Interval(-M_PI/2);
+                // // scenario4: d_clock
+                // vehicle_i[2] = codac::Interval(-M_PI);
+            }
+                
             codac::Vector vehicle = vehicle_i.mid();
             // fig_map.draw_vehicle(vehicle, 0.5);
 
@@ -359,13 +423,13 @@ int main(int argc, char** argv)
                 codac::Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
                 double L1_D = sqrt(l1_d[0] * l1_d[0] + l1_d[1] * l1_d[1]); // landmark to robot distance
 
-                // define interval of range measurement: +- 0.3m
-                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
+                // // define interval of range measurement: +- 0.3m
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
 
                 // // add sytematic error to range measurement by 1 sigma
                 // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.1;
-                // // add sytematic error to range measurement by 1 sigma
-                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
+                // add sytematic error to range measurement by 1 sigma
+                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
 
                 double l1_psi = atan2(l1_d[1], l1_d[0]); // landmark to robot angle
                 double l1_phi = atan2(l1_d[1], l1_d[0]) - (actual_x[j](dt*i)[2]); // landmark to robot angle (robot heading included)
@@ -375,12 +439,23 @@ int main(int argc, char** argv)
                 // codac::Interval l1_b = l1_psi+j*M_PI_2 + codac::Interval(-0.04, 0.04);
 
                 // create the measurement values
+                // original trajectory: a_clock
                 gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+j*M_PI_2);
+                // // scenario1: a_counterclock
+                // gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+ M_PI_2 - j*M_PI_2);
+                // // scenario2: b_clock
+                // gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+ M_PI_2 + j*M_PI_2);
+                // // scenario3: c_clock
+                // gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+ M_PI + j*M_PI_2);
+                // // scenario4: d_clock
+                // gtsam::Rot2 bearing = gtsam::Rot2::fromAngle(l1_psi+ 3*M_PI_2 + j*M_PI_2);
+
+
                 double range = L1_D;
                 // // shift my range measurement by 1 sigma
                 // range = L1_D + 0.1;
-                // // shift my range measurement by 2 sigma
-                // range = L1_D + 0.2;
+                // shift my range measurement by 2 sigma
+                range = L1_D + 0.2;
 
                 // // add offset to the range measurement according to a uniform distribution in interval(-0.3, 0.3)
                 // std::random_device rd;
@@ -391,7 +466,15 @@ int main(int argc, char** argv)
 
 
                 // observation constraints 
+
+                // original trajectory: a_clock
                 if(j == 0)
+                // // scenario2: b_clock
+                // if(j == 3)
+                // // scenario3: c_clock
+                // if(j == 2)
+                // // scenario4: d_clock
+                // if(j == 1)
                 {
                     // when 0 <= x <= 1, find all landmarks that can be observed
                     if(actual_x[j](dt*i)[0] <= 1)
@@ -413,7 +496,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     // when 1 < x <= 9, find all landmarks that can be observed
@@ -434,7 +525,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
                                 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     // when 9 < x < 10, find all landmarks that can be observed
@@ -464,12 +563,26 @@ int main(int argc, char** argv)
                                 // }
                                 
                                 // add measurement factor
-                                graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // original trajectory: a_clock
+                                graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);  
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);  
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);  
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);                          
                             }
                     }
                 }
 
+                // original trajectory: a_clock
                 if(j == 1)
+                // // scenario2: b_clock
+                // if(j == 0)
+                // // scenario3: c_clock
+                // if(j == 3)
+                // // scenario4: d_clock
+                // if(j == 2)
                 {
                     if(actual_x[j](dt*i)[1] > -1)
                     {
@@ -512,7 +625,15 @@ int main(int argc, char** argv)
                                 // }
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     if(actual_x[j](dt*i)[1] > -9 && actual_x[j](dt*i)[1] <= -1)
@@ -535,7 +656,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     if(actual_x[j](dt*i)[1] <= -9)
@@ -558,12 +687,27 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                 }
 
-                if(j == 2)
+                // original trajectory: a_clock
+                if(j == 2)    
+                // // scenario2: b_clock
+                // if(j == 1)  
+                // // scenario3: c_clock
+                // if(j == 0)
+                // // scenario4: d_clock
+                // if(j == 3)          
                 {
                     if(actual_x[j](dt*i)[0] > 9)
                     {
@@ -585,7 +729,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     if(actual_x[j](dt*i)[0] > 1 && actual_x[j](dt*i)[0] <= 9)
@@ -608,7 +760,14 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario 2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
                             }
                     }
                     if(actual_x[j](dt*i)[0] <= 1)
@@ -631,12 +790,27 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario 2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                 }
 
-                if(j == 3)
+                // original trajectory: a_clock
+                if(j == 3)   
+                // // scenario2: b_clock
+                // if(j == 2)
+                // // scenario3: c_clock
+                // if(j == 1)
+                // // scenario4: d_clock
+                // if(j == 0)             
                 {
                     if(actual_x[j](dt*i)[1] < -9)
                     {
@@ -658,7 +832,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     if(actual_x[j](dt*i)[1] >= -9 && actual_x[j](dt*i)[1] < -1)
@@ -681,7 +863,15 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario 2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                     if(actual_x[j](dt*i)[1] >= -1)
@@ -704,10 +894,343 @@ int main(int argc, char** argv)
                                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
 
                                 // add measurement factor
+                                // original trajectory: a_clock
                                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario 2: b_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario3: c_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                                // // scenario4: d_clock
+                                // graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                                
                             }
                     }
                 }
+
+
+                // // scenario1: a_counterclock
+                // if(j == 0)
+                // {
+                //     if(actual_x[j](dt*i)[1] >= -1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() > -1)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[yellow]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+
+                //                 // if(i == 0)
+                //                 // {
+                //                 //     fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 //     fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+                //                 //     cout << "k_index-1: " << k_index-1 << endl;
+                //                 //     cout << setprecision(20) << "l1_psi:" << l1_psi << endl;
+                //                 //     cout << setprecision(20) << "l1_a:" << l1_a << endl;
+                //                 //     cout << setprecision(20) << "actual_x[j](dt*i)[2]:" << actual_x[j](dt*i)[2] << endl;
+                //                 //     // normalize bearing to -pi to pi
+                //                 //     double bear_angle = std::fmod((l1_psi+M_PI_2-j*M_PI_2) + M_PI, 2*M_PI);
+                //                 //     if(bear_angle < 0)
+                //                 //     {
+                //                 //         bear_angle += 2*M_PI;
+                //                 //         cout << "bearing:" << bear_angle<< endl;
+                //                 //     }
+                //                 //     bear_angle = bear_angle - M_PI;
+                //                 //     cout << "bearing:" << bear_angle << endl;
+                //                 //     cout << "bearing:" << l1_psi+M_PI_2-j*M_PI_2<< endl;
+                //                 //     cout << "range:" << range << endl;
+                //                 // }
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[1] >= -9 && actual_x[j](dt*i)[1] < -1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if( l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[yellow]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[1] < -9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() < -9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[yellow]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                // }
+
+                // if(j == 1)
+                // {
+                //     if(actual_x[j](dt*i)[0] <= 1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() < -9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[green]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[0] > 1 && actual_x[j](dt*i)[0] <= 9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if( l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() < -9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[green]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[0] > 9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[0]: " << actual_x[j](dt*i)[0] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() < -9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[green]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+100], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }                                        
+                // }
+
+                // if(j == 2)
+                // {
+                //     if(actual_x[j](dt*i)[1] <= -9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() < -9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[red]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[1] > -9 && actual_x[j](dt*i)[1] <= -1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if((l1_psi < p0_phi1 && l1_psi > p0_phi2) | l1_0[0].mid() > 9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[red]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     if(actual_x[j](dt*i)[1] > -1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "actual_x[j](dt*i)[1]: " << actual_x[j](dt*i)[1] << endl;
+                //         // cout << setprecision(20) << "p0_phi1: " << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2: " << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() > -1 | l1_0[0].mid() > 9)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[red]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+200], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }                    
+                    
+                // }
+
+                // if(j == 3)
+                // {
+                //     // when 9 < x < 10, find all landmarks that can be observed
+                //     if(actual_x[j](dt*i)[0] > 9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[2] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() > 9 | l1_0[1].mid() > -1)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[blue]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // if(i == 99)
+                //                 // {
+                //                 //     fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 //     fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+                //                 //     cout << setprecision(20) << "bearing:" <<  l1_psi+j*M_PI_2 << endl;
+                //                 //     cout << setprecision(20) << "range:" << range << endl;
+                //                 //     cout << "k_index-1: " << k_index-1 << endl;
+                //                 // }
+                                
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     // when 1 < x <= 9, find all landmarks that can be observed
+                //     if(actual_x[j](dt*i)[0] > 1 && actual_x[j](dt*i)[0] <= 9)
+                //     {
+                //         codac::Vector p0_b1 = p_block[0] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[1].mid() > -1)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[blue]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+                                
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+                //     // when 0 <= x <= 1, find all landmarks that can be observed
+                //     if(actual_x[j](dt*i)[0] <= 1)
+                //     {
+                //         codac::Vector p0_b1 = p_block[3] - actual_x[j](dt*i).subvector(0, 1);
+                //         codac::Vector p0_b2 = p_block[1] - actual_x[j](dt*i).subvector(0, 1);
+                //         double p0_phi1 = atan2(p0_b1[1], p0_b1[0]);
+                //         double p0_phi2 = atan2(p0_b2[1], p0_b2[0]);
+                //         // cout << setprecision(20) << "p0_phi1:" << p0_phi1 << endl;
+                //         // cout << setprecision(20) << "p0_phi2:" << p0_phi2 << endl;
+
+                //         if(L1_D < r_obs)
+                //             if(l1_psi < p0_phi1 | l1_psi > p0_phi2 | l1_0[0].mid() < 1 | l1_0[1].mid() > -1)
+                //             {
+                //                 l1_obs.push_back({l1_r, l1_b});
+                //                 l1_map.push_back(l1_0);
+                //                 // fig_map.draw_box(l1_0, "grey[blue]");
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], l1_r, l1_a);
+                //                 // fig_map.draw_pie(actual_x[j](dt*i)[0], actual_x[j](dt*i)[1], (codac::Interval(0.01) | l1_r), l1_a, "lightGray");
+
+                //                 // add measurement factor
+                //                 graph.emplace_shared<gtsam::BearingRangeFactor<gtsam::Pose2, gtsam::Point2> >(x[i+300], lm[k_index-1], bearing, range, measurementNoise);
+                //             }
+                //     }
+
+                // }
+
+
                 
                 fig_map.axis_limits(fig_map.view_box(), true, 0.1);        
             }
@@ -768,7 +1291,7 @@ int main(int argc, char** argv)
     // Calculate and print marginal covariances for all variables
     gtsam::Marginals marginals(graph, result);
 
-    // // print 2x2 covariance matrix of (x, y) from the 3x3 cov matrix of (x, y, heading)
+    // // // print 2x2 covariance matrix of (x, y) from the 3x3 cov matrix of (x, y, heading)
     // for(int i = 0; i < 400; i++)
     // {
     //     // cout << "x[" <<i<<"] covariance: \n"<<marginals.marginalCovariance(x[i]) << endl;

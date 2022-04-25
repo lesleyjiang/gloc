@@ -83,3 +83,8 @@ add_executable(gloc_node1 src/gloc_node1.cpp)
 target_compile_options(gloc_node1 PUBLIC ${CODAC_CXX_FLAGS})
 target_include_directories(gloc_node1 SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
 target_link_libraries(gloc_node1 PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} gtsam Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)
+
+add_executable(gloc_node2 src/gloc_node2.cpp)
+target_compile_options(gloc_node2 PUBLIC ${CODAC_CXX_FLAGS})
+target_include_directories(gloc_node2 SYSTEM PUBLIC ${CODAC_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
+target_link_libraries(gloc_node2 PUBLIC ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${IBEX_LDFLAGS} ${CODAC_LIBRARIES} gtsam Ibex::ibex ${CODAC_LIBRARIES} Ibex::ibex)
