@@ -2,7 +2,7 @@ For gloc_node1.cpp
 
 Basic Parameters 1: 
 robot trajectory: a_clock (starting from upper left corner(0, 0) and goes clockwise)
-map landmarks: a_map
+map landmarks: a_map (randomly generated, used in the paper)
 range of observation:	double r_obs = 2; 
 Interval:
 	landmark radius = 0.3m (3*sigma)
@@ -31,7 +31,7 @@ example4.pdf:(x1.txt lm1.txt cov_x1.txt cov_lm1.txt x2.txt lm2.txt cov_x2.txt co
 
 Basic Parameters 2: 
 robot trajectory: a_clock (starting from upper left corner(0, 0) and goes clockwise)
-map landmarks: b_map
+map landmarks: b_map(comparison group, also randomly generated)
 range of observation:	double r_obs = 2; 
 Interval:
 	landmark radius = 0.3m (3*sigma)
@@ -198,3 +198,29 @@ landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.01, 0.01) // 1c
 example25.pdf:(x17.txt lm17.txt cov_x17.txt cov_lm17.txt box_15.txt)
 -- measurement factors,  map factors, systematic error(range + 2sigma)
 landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.01, 0.01) // 1cm x, y
+
+
+
+Basic Parameters 9: 
+robot trajectory: a_clock (starting from upper left corner(0, 0) and goes clockwise)
+map landmarks: b_map
+range of observation:	double r_obs = 5; 
+Interval:
+	landmark radius = 0.03m (3*sigma)
+	no prior on poses
+	measurement  range radius= 0.3m (3*sigma) , bearing radius= 0.03 rad (3*sigma)
+
+Factor graph:
+	no prior on landmarks
+	pose(x0)  prior(0.0, -10.0, M_PI_2)  priorNoise = Sigmas(0.02, 0.02, 0.01) // 2cm x, y, 0.01 rad bearing
+	measurement  measurementNoise = Sigmas(0.01, 0.1)  // 0.01 rad std on bearing, 10cm on range
+	landmark: m_prior(a_map[k][0], a_map[k][1])  mapNoise = Sigmas(0.01, 0.01) // 1cm x, y
+	
+example30.pdf:(x21.txt lm21.txt cov_x21.txt cov_lm21.txt box19.txt)
+-- measurement factors,  map factors, systematic error(range - 2sigma)
+
+example31.pdf:(x22.txt lm22.txt cov_x22.txt cov_lm22.txt box20.txt)
+-- measurement factors,  map factors, no systematic error
+
+
+

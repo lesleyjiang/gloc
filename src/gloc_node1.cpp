@@ -207,9 +207,9 @@ int main(int argc, char** argv)
     }
 
 
-    // define the observation range
-    double r_obs = 2; // range of oservation
-    // double r_obs = 15; // range of oservation
+    // // define the observation range
+    // double r_obs = 2; // range of oservation
+    double r_obs = 5; // range of oservation
 
 
     // create a factor graph
@@ -420,16 +420,35 @@ int main(int argc, char** argv)
                 // index of landmark
                 k_index++;
                 
-                codac::Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
+                // make the actual measured map feature point randomly distributed in the map interval box l1_0 + (-0.03, 0.03)x(-0.03, 0.03)
+                std::random_device rd1;
+                std::mt19937 gen1(rd1());
+                std::uniform_real_distribution<> dis1(-0.03, 0.03);
+                double l1_0x = dis1(gen1);
+                double l1_0y = dis1(gen1);
+                ibex::Vector l1_random(2);
+                l1_random[0] = l1_0[0].mid() + l1_0x;
+                l1_random[1] = l1_0[1].mid() + l1_0y;
+                // std::cout << "l1_random: " << l1_random << std::endl;
+                // std::cout << "l1_0.mid(): " << l1_0.mid() << std::endl;
+
+
+                // codac::Vector l1_d = l1_0.mid() - actual_x[j](dt*i).subvector(0, 1);
+                // use actual measurement point
+                codac::Vector l1_d = l1_random - actual_x[j](dt*i).subvector(0, 1);
                 double L1_D = sqrt(l1_d[0] * l1_d[0] + l1_d[1] * l1_d[1]); // landmark to robot distance
 
                 // // define interval of range measurement: +- 0.3m
                 // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3); // landmark-to-robot distance observed
 
-                // // add sytematic error to range measurement by 1 sigma
+                // // add sytematic error to range measurement by +1 sigma
                 // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.1;
-                // add sytematic error to range measurement by 1 sigma
-                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
+                // // add sytematic error to range measurement by -1 sigma
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) - 0.1;
+                // // add sytematic error to range measurement by +1 sigma
+                // codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) + 0.2;
+                // add sytematic error to range measurement by -1 sigma
+                codac::Interval l1_r = L1_D + codac::Interval(-0.3, 0.3) - 0.2;
 
                 double l1_psi = atan2(l1_d[1], l1_d[0]); // landmark to robot angle
                 double l1_phi = atan2(l1_d[1], l1_d[0]) - (actual_x[j](dt*i)[2]); // landmark to robot angle (robot heading included)
@@ -452,10 +471,14 @@ int main(int argc, char** argv)
 
 
                 double range = L1_D;
-                // // shift my range measurement by 1 sigma
+                // // shift my range measurement by +1 sigma
                 // range = L1_D + 0.1;
-                // shift my range measurement by 2 sigma
-                range = L1_D + 0.2;
+                // // shift my range measurement by -1 sigma
+                // range = L1_D - 0.1;
+                // // shift my range measurement by +2 sigma
+                // range = L1_D + 0.2;
+                // shift my range measurement by -2 sigma
+                range = L1_D - 0.2;
 
                 // // add offset to the range measurement according to a uniform distribution in interval(-0.3, 0.3)
                 // std::random_device rd;
